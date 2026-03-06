@@ -5,28 +5,116 @@ import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 
+JOINTS = {
+    "l11": {"drive": 1, "ch": 10},
+    "l12": {"drive": 1, "ch": 11},
+    "l13": {"drive": 1, "ch": 12},
+    "l21": {"drive": 1, "ch": 13},
+    "l22": {"drive": 1, "ch": 14},
+    "l23": {"drive": 1, "ch": 15},
+    "l31": {"drive": 0, "ch": 13},
+    "l32": {"drive": 0, "ch": 14},
+    "l33": {"drive": 0, "ch": 15},
+    "r11": {"drive": 1, "ch": 6},
+    "r12": {"drive": 1, "ch": 5},
+    "r13": {"drive": 1, "ch": 4},
+    "r21": {"drive": 1, "ch": 9},
+    "r22": {"drive": 1, "ch": 8},
+    "r23": {"drive": 1, "ch": 7},
+    "r31": {"drive": 0, "ch": 2},
+    "r32": {"drive": 0, "ch": 1},
+    "r33": {"drive": 0, "ch": 0},
+}
+
 # 1) I2C bus (Feather SDA/SCL pins)
 i2c = busio.I2C(board.SCL, board.SDA)
 
-# 2) PCA9685 at default address 0x40
-pca = PCA9685(i2c, address=0x40)
+PCA = []
 
-# 3) Standard servo refresh rate
-pca.frequency = 50
+for address in [0x40, 0x41]:
+    pca = PCA9685(i2c, address=address)
+    PCA.append(pca)
 
-# 5) Create a servo object
-# Most micro servos: pulse range ~500-2500 us is common
-s1 = servo.Servo(pca.channels[0], min_pulse=500, max_pulse=2500)
-s2 = servo.Servo(pca.channels[1], min_pulse=500, max_pulse=2500)
 
-print("Starting servo test...")
+SERVOS = {}
+
+for k, v in JOINTS.items():
+    pca = PCA[v["drive"]]
+    ch = pca.channels[v["ch"]]
+    s = servo.Servo(ch, min_pulse=500, max_pulse=2500)
+
+    SERVOS[k] = s
+
+print("Starting servo calibration")
+
+STEP = 1
+DEFAULT_ANGLE = 180
+
+current_servo = None
+servo_key = None
+current_angle = DEFAULT_ANGLE
+
+min_angle = max_angle = neutral_angle = None
+
+
+def write_angle(angle):
+
+    global current_servo, current_angle
+
+    if current_servo is not None:
+        current_angle = angle
+        current_servo.angle = current_angle
+        print(f"current angle: {current_angle}")
+        time.sleep(0.1)
+    else:
+        print("choose a servo first")
+
 
 while True:
-    # Move to three positions
-    s1.angle = 180
-    s2.angle = 180
-    time.sleep(1)
+    cmd = input("> ").strip()
 
-    s1.angle = 100
-    s2.angle = 100
-    time.sleep(1)
+    if cmd.startswith("servo"):
+        key = cmd.split(" ")[1]
+
+        if key not in SERVOS:
+            print("Unknown servo")
+            continue
+
+        servo_key = key
+        current_servo = SERVOS[servo_key]
+        current_angle = 180
+
+    elif cmd == "w":
+        write_angle(current_angle+STEP)
+    elif cmd == "s":
+        write_angle(current_angle-STEP)
+    elif cmd == "W":
+        write_angle(current_angle+5*STEP)
+    elif cmd == "S":
+        write_angle(current_angle-5*STEP)
+    elif cmd == "r":
+        write_angle(DEFAULT_ANGLE)
+    elif cmd == "p":
+        print(f"current angle: {current_angle}")
+    elif cmd == "min":
+        min_angle = current_angle
+        print(f"min: {min_angle}")
+    elif cmd == "max":
+        max_angle = current_angle
+        print(f"max: {max_angle}")
+    elif cmd == "neutral":
+        neutral_angle = current_angle
+        print(f"neutral: {neutral_angle}")
+    elif cmd == "save":
+        print({
+            "servo": servo_key,
+            "min": min_angle,
+            "neutral": neutral_angle,
+            "max": max_angle,
+        })
+    elif cmd == "q":
+        break
+    else:
+        print("Unknown command")
+
+print("Done.")

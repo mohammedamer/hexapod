@@ -31,7 +31,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 
 PCA = []
 
-for address in [0x40, 0x41]:
+for address in [0x36, 0x40]:
     pca = PCA9685(i2c, address=address)
     PCA.append(pca)
 
@@ -82,7 +82,9 @@ while True:
 
         servo_key = key
         current_servo = SERVOS[servo_key]
-        current_angle = 180
+        write_angle(DEFAULT_ANGLE)
+
+        print(f"selected servo: {servo_key}")
 
     elif cmd == "w":
         write_angle(current_angle+STEP)

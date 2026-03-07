@@ -6,21 +6,21 @@ from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 
 JOINTS = {
-    "l11": {"drive": 1, "ch": 10},
-    "l12": {"drive": 1, "ch": 11},
-    "l13": {"drive": 1, "ch": 12},
-    "l21": {"drive": 1, "ch": 13},
-    "l22": {"drive": 1, "ch": 14},
-    "l23": {"drive": 1, "ch": 15},
+    # "l11": {"drive": 1, "ch": 10},
+    # "l12": {"drive": 1, "ch": 11},
+    # "l13": {"drive": 1, "ch": 12},
+    # "l21": {"drive": 1, "ch": 13},
+    # "l22": {"drive": 1, "ch": 14},
+    # "l23": {"drive": 1, "ch": 15},
     "l31": {"drive": 0, "ch": 13},
     "l32": {"drive": 0, "ch": 14},
     "l33": {"drive": 0, "ch": 15},
-    "r11": {"drive": 1, "ch": 6},
-    "r12": {"drive": 1, "ch": 5},
-    "r13": {"drive": 1, "ch": 4},
-    "r21": {"drive": 1, "ch": 9},
-    "r22": {"drive": 1, "ch": 8},
-    "r23": {"drive": 1, "ch": 7},
+    # "r11": {"drive": 1, "ch": 6},
+    # "r12": {"drive": 1, "ch": 5},
+    # "r13": {"drive": 1, "ch": 4},
+    # "r21": {"drive": 1, "ch": 9},
+    # "r22": {"drive": 1, "ch": 8},
+    # "r23": {"drive": 1, "ch": 7},
     "r31": {"drive": 0, "ch": 2},
     "r32": {"drive": 0, "ch": 1},
     "r33": {"drive": 0, "ch": 0},
@@ -29,10 +29,19 @@ JOINTS = {
 # 1) I2C bus (Feather SDA/SCL pins)
 i2c = busio.I2C(board.SCL, board.SDA)
 
+while not i2c.try_lock():
+    pass
+
+try:
+    print([hex(x) for x in i2c.scan()])
+finally:
+    i2c.unlock()
+
 PCA = []
 
-for address in [0x36, 0x40]:
+for address in [0x40,]:
     pca = PCA9685(i2c, address=address)
+    pca.frequency = 50
     PCA.append(pca)
 
 
@@ -48,7 +57,7 @@ for k, v in JOINTS.items():
 print("Starting servo calibration")
 
 STEP = 1
-DEFAULT_ANGLE = 180
+DEFAULT_ANGLE = 0
 
 current_servo = None
 servo_key = None
